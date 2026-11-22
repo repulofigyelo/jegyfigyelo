@@ -23,7 +23,7 @@ jobs:
           import urllib.request
           import urllib.error
 
-          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          token = "".join(os.environ.get("TELEGRAM_BOT_TOKEN", "").split())
           chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
           if not token or not chat_id:
