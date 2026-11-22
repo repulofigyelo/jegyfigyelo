@@ -1,0 +1,60 @@
+name: Telegram kapcsolat teszt
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telegram-teszt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Tesztuzenet kuldese
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: python
+        run: |
+          import os
+          import json
+          import urllib.request
+          import urllib.error
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+
+          if not token or not chat_id:
+              raise SystemExit("Hianyzik a Telegram token vagy a chat ID a Secrets beallitasbol.")
+
+          payload = json.dumps({
+              "chat_id": chat_id,
+              "text": (
+                  "GitHub → Telegram teszt sikeres.\n\n"
+                  "Ezt az üzenetet már a GitHub Actions küldte.\n"
+                  "Ez kizárólag kapcsolatteszt: a valódi jegyárkeresés "
+                  "még nincs bekötve."
+              )
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST"
+          )
+
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  result = json.load(response)
+          except urllib.error.HTTPError as error:
+              raise SystemExit(f"Telegram HTTP hiba: {error.code}") from None
+          except urllib.error.URLError:
+              raise SystemExit("Halozati hiba a Telegram eleresekor.") from None
+
+          if not result.get("ok"):
+              raise SystemExit("A Telegram nem igazolta vissza a kuldest.")
+
+          print("A Telegram visszaigazolta a sikeres uzenetkuldest.")
